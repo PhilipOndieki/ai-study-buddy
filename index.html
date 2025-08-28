@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Study Buddy - Transform Notes into Smart Flashcards</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>🧠</text></svg>">
+    <link rel="stylesheet" href="styles/main.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#3B82F6">
+    <meta name="description" content="AI Study Buddy transforms your study notes into interactive, intelligent flashcards in seconds. Perfect for students across Africa.">
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="container">
+                <div class="logo">
+                    <span class="logo-icon">🧠</span>
+                    <span class="logo-text">AI Study Buddy</span>
+                </div>
+                <nav class="nav">
+                    <button class="nav-btn" id="my-decks-btn">My Decks</button>
+                    <button class="nav-btn premium" id="upgrade-btn">Upgrade</button>
+                </nav>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main">
+            <!-- Welcome Screen -->
+            <section id="welcome-screen" class="screen active">
+                <div class="container">
+                    <div class="hero">
+                        <h1 class="hero-title">Transform Notes into Smart Flashcards</h1>
+                        <p class="hero-subtitle">AI-powered learning that adapts to you. Paste your notes, get intelligent questions instantly.</p>
+                        <div class="hero-features">
+                            <div class="feature">
+                                <span class="feature-icon">⚡</span>
+                                <span>Instant AI Generation</span>
+                            </div>
+                            <div class="feature">
+                                <span class="feature-icon">🎯</span>
+                                <span>Smart Question Types</span>
+                            </div>
+                            <div class="feature">
+                                <span class="feature-icon">📱</span>
+                                <span>Mobile Optimized</span>
+                            </div>
+                        </div>
+                        <button class="cta-btn" id="start-btn">Start Learning Now</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Note Input Screen -->
+            <section id="input-screen" class="screen">
+                <div class="container">
+                    <div class="input-section">
+                        <div class="section-header">
+                            <h2>Paste Your Study Notes</h2>
+                            <p>Add your notes below and we'll generate intelligent flashcards for you</p>
+                        </div>
+                        <div class="input-container">
+                            <div class="textarea-wrapper">
+                                <textarea 
+                                    id="notes-input" 
+                                    placeholder="Paste your study notes here... (minimum 100 characters)"
+                                    maxlength="5000"
+                                    rows="12"
+                                ></textarea>
+                                <div class="char-counter">
+                                    <span id="char-count">0</span> / 5000
+                                </div>
+                            </div>
+                            <div class="input-actions">
+                                <button class="secondary-btn" id="back-to-welcome">Back</button>
+                                <button class="primary-btn" id="generate-btn" disabled>
+                                    <span class="btn-text">Generate Flashcards</span>
+                                    <span class="loading-spinner"></span>
+                                </button>
+                            </div>
+                            <div id="input-error" class="error-message"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Loading Screen -->
+            <section id="loading-screen" class="screen">
+                <div class="container">
+                    <div class="loading-section">
+                        <div class="ai-animation">
+                            <div class="ai-brain">🧠</div>
+                            <div class="thinking-dots">
+                                <span></span>
+                                <span></span>
+                                <span></span>
+                            </div>
+                        </div>
+                        <h2>AI is Creating Your Flashcards</h2>
+                        <p>Analyzing your notes and generating intelligent questions...</p>
+                        <div class="progress-bar">
+                            <div class="progress-fill"></div>
+                        </div>
+                        <div class="loading-stats">
+                            <div class="stat">
+                                <span class="stat-number" id="questions-generated">0</span>
+                                <span class="stat-label">Questions Generated</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-number" id="progress-percent">0%</span>
+                                <span class="stat-label">Complete</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Flashcards Screen -->
+            <section id="flashcards-screen" class="screen">
+                <div class="container">
+                    <div class="flashcard-header">
+                        <div class="deck-info">
+                            <h2 id="deck-title">Your Study Deck</h2>
+                            <div class="progress-indicator">
+                                <span id="current-card">1</span> of <span id="total-cards">5</span>
+                            </div>
+                        </div>
+                        <div class="deck-actions">
+                            <button class="icon-btn" id="restart-deck" title="Restart deck">
+                                <span>🔄</span>
+                            </button>
+                            <button class="icon-btn" id="save-deck" title="Save deck">
+                                <span>💾</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flashcard-container">
+                        <div class="flashcard" id="flashcard">
+                            <div class="flashcard-inner">
+                                <div class="flashcard-front">
+                                    <div class="card-content">
+                                        <div class="question-type" id="question-type">Multiple Choice</div>
+                                        <div class="question-text" id="question-text"></div>
+                                        <div class="options-container" id="options-container"></div>
+                                    </div>
+                                    <div class="card-actions">
+                                        <button class="reveal-btn" id="reveal-btn">Show Answer</button>
+                                    </div>
+                                </div>
+                                <div class="flashcard-back">
+                                    <div class="card-content">
+                                        <div class="answer-label">Correct Answer</div>
+                                        <div class="answer-text" id="answer-text"></div>
+                                        <div class="explanation" id="explanation"></div>
+                                    </div>
+                                    <div class="card-actions">
+                                        <button class="difficulty-btn easy" id="easy-btn">
+                                            <span>😊</span>
+                                            <span>Easy</span>
+                                        </button>
+                                        <button class="difficulty-btn medium" id="medium-btn">
+                                            <span>🤔</span>
+                                            <span>Medium</span>
+                                        </button>
+                                        <button class="difficulty-btn hard" id="hard-btn">
+                                            <span>😵</span>
+                                            <span>Hard</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="navigation-controls">
+                        <button class="nav-control-btn" id="prev-btn" disabled>
+                            <span>←</span>
+                            Previous
+                        </button>
+                        <button class="nav-control-btn" id="next-btn">
+                            Next
+                            <span>→</span>
+                        </button>
+                    </div>
+
+                    <div class="study-progress">
+                        <div class="progress-cards">
+                            <div class="progress-stat">
+                                <span class="stat-number" id="easy-count">0</span>
+                                <span class="stat-label easy">Easy</span>
+                            </div>
+                            <div class="progress-stat">
+                                <span class="stat-number" id="medium-count">0</span>
+                                <span class="stat-label medium">Medium</span>
+                            </div>
+                            <div class="progress-stat">
+                                <span class="stat-number" id="hard-count">0</span>
+                                <span class="stat-label hard">Hard</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- My Decks Screen -->
+            <section id="decks-screen" class="screen">
+                <div class="container">
+                    <div class="decks-header">
+                        <h2>My Study Decks</h2>
+                        <button class="primary-btn" id="create-new-deck">
+                            <span>+</span>
+                            Create New Deck
+                        </button>
+                    </div>
+                    <div class="decks-grid" id="decks-grid">
+                        <!-- Decks will be populated here -->
+                    </div>
+                    <div class="empty-state" id="empty-decks">
+                        <div class="empty-icon">📚</div>
+                        <h3>No Study Decks Yet</h3>
+                        <p>Create your first flashcard deck to start learning</p>
+                        <button class="primary-btn" id="create-first-deck">Get Started</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Premium Modal -->
+            <div id="premium-modal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Unlock Premium Features</h3>
+                        <button class="close-btn" id="close-premium">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="premium-features">
+                            <div class="feature-item">
+                                <span class="feature-check">✓</span>
+                                <span>Unlimited flashcard decks</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-check">✓</span>
+                                <span>Advanced AI question types</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-check">✓</span>
+                                <span>Detailed progress analytics</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-check">✓</span>
+                                <span>Offline study mode</span>
+                            </div>
+                        </div>
+                        <div class="pricing">
+                            <div class="price">
+                                <span class="currency">KES</span>
+                                <span class="amount">299</span>
+                                <span class="period">/month</span>
+                            </div>
+                            <p class="price-note">or KES 2,499/year (save 30%)</p>
+                        </div>
+                    </div>
+                    <div class="modal-actions">
+                        <button class="premium-btn" id="subscribe-btn">Subscribe Now</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="container">
+                <p>&copy; 2025 AI Study Buddy. Making quality education accessible across Africa.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script src="js/flashcards.js"></script>
+    <script src="js/storage.js"></script>
+</body>
+</html>

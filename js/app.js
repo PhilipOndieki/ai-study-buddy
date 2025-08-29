@@ -4,6 +4,7 @@ class AIStudyBuddyApp {
         this.currentScreen = 'welcome';
         this.currentDeck = null;
         this.currentCardIndex = 0;
+        this.currentSession = null;
         this.studyProgress = {
             easy: 0,
             medium: 0,
@@ -166,29 +167,37 @@ class AIStudyBuddyApp {
             // Switch to loading screen
             this.loadScreen('loading');
             
-            // Simulate AI processing with realistic timing
-            await this.simulateAIGeneration();
+            // Show progress animation
+            this.simulateAIGeneration();
             
-            // Generate mock flashcards (in production, this would call the Hugging Face API)
-            const flashcards = this.generateMockFlashcards(notes);
+            // Generate flashcards using backend API
+            const response = await window.apiService.generateFlashcards(notes);
             
-            // Create and save deck
+            // Convert API response to frontend format
             const deck = {
-                id: Date.now().toString(),
-                title: this.generateDeckTitle(notes),
-                cards: flashcards,
-                created: new Date().toISOString(),
-                lastStudied: null,
-                progress: 0
+                id: response.deck_id,
+                title: response.title,
+                cards: response.cards,
+                created: response.created,
+                lastStudied: response.lastStudied,
+                progress: response.progress || 0
             };
 
-            // Save to storage
+            // Also save to local storage as backup
             StorageManager.saveDeck(deck);
             
             // Load flashcards screen
             this.currentDeck = deck;
             this.currentCardIndex = 0;
             this.resetStudyProgress();
+            
+            // Start study session
+            try {
+                const sessionResponse = await window.apiService.startStudySession(deck.id);
+                this.currentSession = sessionResponse;
+            } catch (error) {
+                console.warn('Failed to start study session:', error);
+            }
             
             setTimeout(() => {
                 this.loadScreen('flashcards');
@@ -197,7 +206,13 @@ class AIStudyBuddyApp {
 
         } catch (error) {
             console.error('Error generating flashcards:', error);
-            this.showError('Failed to generate flashcards. Please try again.');
+            
+            // Check if it's a premium limit error
+            if (error.message.includes('Free tier limit reached')) {
+                this.showPremiumLimitError();
+            } else {
+                this.showError('Failed to generate flashcards. Please try again.');
+            }
             this.loadScreen('input');
         } finally {
             generateBtn.classList.remove('loading');
@@ -232,95 +247,63 @@ class AIStudyBuddyApp {
         });
     }
 
-    generateMockFlashcards(notes) {
-        // This is a mock implementation. In production, this would use the Hugging Face API
-        const topics = this.extractTopics(notes);
-        const flashcards = [];
-
-        const questionTypes = ['multiple-choice', 'true-false', 'short-answer'];
-        
-        for (let i = 0; i < 5; i++) {
-            const type = questionTypes[Math.floor(Math.random() * questionTypes.length)];
-            const topic = topics[Math.floor(Math.random() * topics.length)];
-            
-            flashcards.push(this.createMockCard(type, topic, notes));
-        }
-
-        return flashcards;
-    }
-
-    extractTopics(notes) {
-        // Simple topic extraction (in production, use NLP)
-        const words = notes.toLowerCase().split(/\W+/);
-        const commonWords = new Set(['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'be', 'been', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'must', 'shall', 'this', 'that', 'these', 'those']);
-        
-        const topics = words
-            .filter(word => word.length > 3 && !commonWords.has(word))
-            .slice(0, 10);
-
-        return topics.length > 0 ? topics : ['concept', 'topic', 'subject'];
-    }
-
-    createMockCard(type, topic, notes) {
-        const templates = {
-            'multiple-choice': {
-                question: `What is the main concept related to ${topic}?`,
-                options: [
-                    `${topic} is the primary focus`,
-                    `${topic} is secondary`,
-                    `${topic} is not mentioned`,
-                    `${topic} is irrelevant`
-                ],
-                correct: 0,
-                explanation: `Based on the notes, ${topic} appears to be a key concept that requires understanding.`
-            },
-            'true-false': {
-                question: `${topic} is an important concept in this study material.`,
-                options: ['True', 'False'],
-                correct: 0,
-                explanation: `This statement is true because ${topic} appears in the context of the study material.`
-            },
-            'short-answer': {
-                question: `Explain the significance of ${topic} in your own words.`,
-                options: [],
-                correct: 0,
-                explanation: `${topic} is significant because it relates to the main themes discussed in the study material.`
-            }
-        };
-
-        const template = templates[type];
-        return {
-            id: `card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-            type: type,
-            question: template.question,
-            options: template.options,
-            correctAnswer: template.correct,
-            explanation: template.explanation,
-            difficulty: null,
-            attempts: 0,
-            correct: 0
-        };
-    }
-
-    generateDeckTitle(notes) {
-        const words = notes.split(/\s+/).slice(0, 5);
-        return words.join(' ').substring(0, 50) + (notes.length > 50 ? '...' : '');
-    }
-
-    loadMyDecks() {
+    async loadMyDecks() {
         this.loadScreen('decks');
-        const decks = StorageManager.getAllDecks();
-        const decksGrid = document.getElementById('decks-grid');
-        const emptyState = document.getElementById('empty-decks');
+        
+        try {
+            // Try to load from backend first
+            const response = await window.apiService.getUserDecks();
+            const decks = response.decks || [];
+            
+            // Merge with local storage as fallback
+            const localDecks = StorageManager.getAllDecks();
+            const allDecks = this.mergeDecks(decks, localDecks);
+            
+            const decksGrid = document.getElementById('decks-grid');
+            const emptyState = document.getElementById('empty-decks');
 
-        if (decks.length === 0) {
-            decksGrid.style.display = 'none';
-            emptyState.style.display = 'block';
-        } else {
-            decksGrid.style.display = 'grid';
-            emptyState.style.display = 'none';
-            this.renderDecks(decks);
+            if (allDecks.length === 0) {
+                decksGrid.style.display = 'none';
+                emptyState.style.display = 'block';
+            } else {
+                decksGrid.style.display = 'grid';
+                emptyState.style.display = 'none';
+                this.renderDecks(allDecks);
+            }
+        } catch (error) {
+            console.error('Failed to load decks from backend, using local storage:', error);
+            
+            // Fallback to local storage
+            const localDecks = StorageManager.getAllDecks();
+            const decksGrid = document.getElementById('decks-grid');
+            const emptyState = document.getElementById('empty-decks');
+
+            if (localDecks.length === 0) {
+                decksGrid.style.display = 'none';
+                emptyState.style.display = 'block';
+            } else {
+                decksGrid.style.display = 'grid';
+                emptyState.style.display = 'none';
+                this.renderDecks(localDecks);
+            }
         }
+    }
+
+    mergeDecks(backendDecks, localDecks) {
+        // Create a map of backend decks by ID
+        const backendMap = new Map(backendDecks.map(deck => [deck.id, deck]));
+        
+        // Start with backend decks
+        const merged = [...backendDecks];
+        
+        // Add local decks that aren't in backend
+        localDecks.forEach(localDeck => {
+            if (!backendMap.has(localDeck.id)) {
+                merged.push(localDeck);
+            }
+        });
+        
+        return merged.sort((a, b) => new Date(b.created) - new Date(a.created));
     }
 
     renderDecks(decks) {
@@ -388,12 +371,22 @@ class AIStudyBuddyApp {
         document.getElementById('hard-count').textContent = this.studyProgress.hard;
     }
 
-    rateCard(difficulty) {
+    async rateCard(difficulty) {
         this.studyProgress[difficulty]++;
         this.updateProgressDisplay();
         
         if (this.currentDeck && this.currentDeck.cards[this.currentCardIndex]) {
             this.currentDeck.cards[this.currentCardIndex].difficulty = difficulty;
+            
+            // Record study attempt in backend
+            try {
+                const card = this.currentDeck.cards[this.currentCardIndex];
+                const isCorrect = difficulty === 'easy'; // Simple heuristic
+                
+                await window.apiService.recordCardStudy(card.id, isCorrect, difficulty);
+            } catch (error) {
+                console.warn('Failed to record card study:', error);
+            }
         }
         
         // Auto-advance to next card after rating
@@ -435,6 +428,20 @@ class AIStudyBuddyApp {
         }
     }
 
+    showPremiumLimitError() {
+        const errorElement = document.getElementById('input-error');
+        if (errorElement) {
+            errorElement.innerHTML = `
+                <strong>Free tier limit reached!</strong> 
+                You've created 5 decks this month. 
+                <button onclick="window.app.showPremiumModal()" style="color: var(--primary-600); text-decoration: underline; background: none; border: none; cursor: pointer;">
+                    Upgrade to Premium
+                </button> for unlimited decks.
+            `;
+            errorElement.classList.add('show');
+        }
+    }
+
     showPremiumModal() {
         const modal = document.getElementById('premium-modal');
         modal.classList.add('active');
@@ -446,14 +453,66 @@ class AIStudyBuddyApp {
     }
 
     async handleSubscription() {
-        // In production, this would integrate with IntaSend API
-        alert('Subscription feature coming soon! IntaSend integration will be available in the next update.');
-        
-        // Mock successful subscription for demo
-        setTimeout(() => {
+        try {
+            const subscriptionType = document.querySelector('input[name="subscription"]:checked')?.value || 'monthly';
+            const paymentMethod = 'card'; // Default for now
+            
+            const response = await window.apiService.upgradeToPremium(paymentMethod, subscriptionType);
+            
             this.hidePremiumModal();
             this.showSuccessMessage('Welcome to Premium! All features unlocked.');
-        }, 1000);
+            
+        } catch (error) {
+            console.error('Subscription failed:', error);
+            this.showError('Subscription failed. Please try again.');
+        }
+    }
+
+    async completeDeck() {
+        if (this.currentSession) {
+            try {
+                const sessionData = {
+                    cards_studied: this.currentDeck.cards.length,
+                    cards_correct: this.studyProgress.easy + Math.floor(this.studyProgress.medium * 0.7),
+                    accuracy: this.calculateSessionAccuracy(),
+                    deck_progress: 100
+                };
+                
+                await window.apiService.completeStudySession(this.currentSession.session_id, sessionData);
+                
+                // Update deck progress in backend
+                await window.apiService.updateDeck(this.currentDeck.id, {
+                    progress: 100,
+                    last_studied: new Date().toISOString()
+                });
+                
+            } catch (error) {
+                console.warn('Failed to complete study session:', error);
+            }
+        }
+        
+        // Continue with existing completion logic
+        const totalCards = this.currentDeck.cards.length;
+        const ratedCards = this.currentDeck.cards.filter(card => card.difficulty).length;
+        const accuracy = this.calculateSessionAccuracy();
+        
+        // Update local deck
+        this.currentDeck.lastStudied = new Date().toISOString();
+        this.currentDeck.progress = 100;
+        this.currentDeck.completions = (this.currentDeck.completions || 0) + 1;
+        
+        StorageManager.updateDeck(this.currentDeck);
+        
+        // Show completion modal
+        this.showCompletionSummary(totalCards, ratedCards, accuracy);
+    }
+
+    calculateSessionAccuracy() {
+        const total = this.studyProgress.easy + this.studyProgress.medium + this.studyProgress.hard;
+        if (total === 0) return 0;
+        
+        const weightedScore = (this.studyProgress.easy * 100 + this.studyProgress.medium * 70 + this.studyProgress.hard * 30);
+        return Math.round(weightedScore / total);
     }
 
     showSuccessMessage(message) {
@@ -479,6 +538,13 @@ class AIStudyBuddyApp {
         }, 3000);
     }
 }
+
+// Enhanced deck completion for FlashcardManager integration
+window.addEventListener('deck-completed', async (event) => {
+    if (window.app && window.app.completeDeck) {
+        await window.app.completeDeck();
+    }
+});
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {

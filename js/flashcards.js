@@ -284,31 +284,10 @@ class FlashcardManager {
     }
 
     static completeDeck() {
-        const totalCards = this.currentDeck.cards.length;
-        const ratedCards = this.currentDeck.cards.filter(card => card.difficulty).length;
-        const accuracy = this.calculateAccuracy();
-        
-        // Update deck completion stats
-        this.currentDeck.lastStudied = new Date().toISOString();
-        this.currentDeck.progress = 100;
-        this.currentDeck.completions = (this.currentDeck.completions || 0) + 1;
-        
-        StorageManager.updateDeck(this.currentDeck);
-        
-        // Show completion modal/message
-        this.showCompletionSummary(totalCards, ratedCards, accuracy);
-    }
-
-    static calculateAccuracy() {
-        const ratedCards = this.currentDeck.cards.filter(card => card.difficulty);
-        if (ratedCards.length === 0) return 0;
-        
-        const easyCards = ratedCards.filter(card => card.difficulty === 'easy').length;
-        const mediumCards = ratedCards.filter(card => card.difficulty === 'medium').length;
-        
-        // Calculate weighted accuracy (easy = 100%, medium = 70%, hard = 30%)
-        const weightedScore = (easyCards * 100 + mediumCards * 70 + (ratedCards.length - easyCards - mediumCards) * 30);
-        return Math.round(weightedScore / ratedCards.length);
+        // Dispatch event for app to handle backend integration
+        window.dispatchEvent(new CustomEvent('deck-completed', {
+            detail: { deck: this.currentDeck }
+        }));
     }
 
     static showCompletionSummary(total, rated, accuracy) {

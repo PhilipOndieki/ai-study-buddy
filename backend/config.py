@@ -14,7 +14,7 @@ class Config:
     
     # Session configuration
     PERMANENT_SESSION_LIFETIME = timedelta(days=30)
-    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
     
@@ -36,26 +36,19 @@ class Config:
 class DevelopmentConfig(Config):
     """Development configuration"""
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DEV_DATABASE_URL') or \
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
         'mysql+pymysql://root:password@localhost/ai_study_buddy_dev'
-    SESSION_COOKIE_SECURE = False
 
 class ProductionConfig(Config):
     """Production configuration"""
     DEBUG = False
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-        'mysql+pymysql://username:password@localhost/ai_study_buddy'
-    
-    # Enhanced security for production
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
     SESSION_COOKIE_SECURE = True
-    SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SAMESITE = 'Strict'
 
 class TestingConfig(Config):
     """Testing configuration"""
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
-    WTF_CSRF_ENABLED = False
 
 # Configuration mapping
 config = {

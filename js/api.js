@@ -95,12 +95,31 @@ class APIService {
     }
 
     // Premium Features
-    async upgradeToPremium(paymentMethod = 'card', subscriptionType = 'monthly') {
+    async upgradeToPremium(paymentData = {}) {
+        const {
+            paymentMethod = 'card',
+            subscriptionType = 'monthly',
+            phoneNumber = null,
+            email = null
+        } = paymentData;
+
         return this.request('/premium/upgrade', {
             method: 'POST',
             body: JSON.stringify({
                 payment_method: paymentMethod,
-                subscription_type: subscriptionType
+                subscription_type: subscriptionType,
+                phone_number: phoneNumber,
+                email: email
+            })
+        });
+    }
+
+    // Payment Verification 
+    async verifyPayment(paymentRef) {
+        return this.request('/payment/verify', {
+            method: 'POST',
+            body: JSON.stringify({
+                payment_ref: paymentRef
             })
         });
     }

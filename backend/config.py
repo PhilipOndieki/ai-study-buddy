@@ -19,7 +19,7 @@ class Config:
     SESSION_COOKIE_SAMESITE = 'Lax'
     
     # AI Configuration
-    HUGGING_FACE_API_TOKEN = os.environ.get('HUGGING_FACE_API_TOKEN')
+    HUGGING_FACE_API_TOKEN = os.environ.get('HF_API_TOKEN')
     MAX_QUESTIONS_PER_DECK = 10
     MIN_NOTE_LENGTH = 100
     MAX_NOTE_LENGTH = 5000

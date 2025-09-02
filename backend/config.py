@@ -19,7 +19,7 @@ class Config:
     SESSION_COOKIE_SAMESITE = 'Lax'
     
     # AI Configuration
-    HUGGING_FACE_API_TOKEN = os.environ.get('HF_API_TOKEN')
+    api_token= os.environ.get('OPENROUTER_API_KEY')
     MAX_QUESTIONS_PER_DECK = 10
     MIN_NOTE_LENGTH = 100
     MAX_NOTE_LENGTH = 5000
@@ -29,9 +29,9 @@ class Config:
     PREMIUM_TIER_MONTHLY_DECKS = -1  # Unlimited
     
     # IntaSend Configuration
-    INTASEND_PUBLIC_KEY = os.environ.get('INTASEND_PUBLIC_KEY')
-    INTASEND_SECRET_KEY = os.environ.get('INTASEND_SECRET_KEY')
-    INTASEND_WEBHOOK_SECRET = os.environ.get('INTASEND_WEBHOOK_SECRET')
+    PAYSTACK_PUBLIC_KEY = os.environ.get('PAYSTACK_PUBLIC_KEY')
+    PAYSTACK_SECRET_KEY = os.environ.get('PAYSTACK_SECRET_KEY')
+    PAYSTACK_WEBHOOK_SECRET = os.environ.get('PAYSTACK_WEBHOOK_SECRET')
 
 class DevelopmentConfig(Config):
     """Development configuration"""
